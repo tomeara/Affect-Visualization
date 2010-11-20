@@ -4,20 +4,26 @@ require 'osc-ruby'
 #Set up the Server to recieve UDP->OSC packets
 @server = OSC::Server.new(7400)
 
-#Filter and show packets w/ "Excitement"
-@server.add_method '/AFF/Excitement' do | message |
-  puts message.inspect
+#Filter, clean and show OSC data
+def osc_parse(affect)
+  @server.add_method "/AFF/#{affect}" do | message |
+    message.instance_variable_get(:@args).each do |arg|
+      puts arg.instance_variable_get(:@val).inspect
+    end
+  end
 end
 
-#Filter and show packets w/ "Frustration"
-@server.add_method '/AFF/Frustration' do |message|
-  puts message.inspect
-end
+#Get Affect from the EPOC Affectiv Suite
+osc_parse("Excitement")
+osc_parse("Frustration")
+osc_parse("Meditation")
+osc_parse("Engagement")
 
+#Run the server...
 Thread.new do
   @server.run
 end
 
-
-sleep(2000)
+# ...for however long
+sleep(3)
 
