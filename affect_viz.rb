@@ -2,20 +2,57 @@ require 'rubygems'
 require 'ruby-processing'
 require 'osc-ruby'
 
+module Runnable
+  def run
+    self.reject! { |particle| particle.dead? }
+    self.each    { |particle| particle.run   }
+  end
+end
+
+class Vector
+  attr_accessor :x, :y
+
+  def initialize(x, y)
+    @x, @y = x, y
+  end
+
+  def +(other)
+    if other.is_a?(Numeric)
+      Vector.new(@x + other, @y + other)
+    elsif other.is_a?(Vector)
+      Vector.new(@x + other.x, @y + other.y)
+    else
+      self
+    end
+  end
+
+  def heading
+    -1 * Math::atan2(-@y, @x)
+  end
+
+  def magnitude
+    @x * @x + @y * @y
+  end
+end
+
 class Affect_viz < Processing::App
   
   def setup
     self.server
-    
-    size 800, 600
-    noStroke()
-    smooth()
+
+    size 1000, 1000
+    smooth
+    color_mode(RGB, 255, 255, 255, 100)
+    ellipse_mode(CENTER)
+
+    @particles = []
+    @particles.extend Runnable
   end
 
   def draw
-    background((@@excite * 255), (@@meditate * 255), (@@frustrate * 255))
-    line(0, 0, (@@excite * 800), (@@frustrate * 600))
-    stroke(255);
+    background((@@excite * 255), (@@engage * 255), (@@frustrate * 255))
+    @particles.run
+    @particles << Particle.new(Vector.new(@@engage * 1000, @@frustrate * 1000))
   end
     
   def server
@@ -26,29 +63,36 @@ class Affect_viz < Processing::App
 
       @server.add_method "/AFF/Excitement" do | message |
         message.instance_variable_get(:@args).each do |arg|
-          puts arg.instance_variable_get(:@val).to_s.to_f
+          puts "Excitement - #{arg.instance_variable_get(:@val).to_s.to_f}"
           @@excite = arg.instance_variable_get(:@val).to_s.to_f
         end
       end
 
       @server.add_method "/AFF/Meditation" do | message |
         message.instance_variable_get(:@args).each do |arg|
-          puts arg.instance_variable_get(:@val).to_s.to_f
+          puts "Meditation - #{arg.instance_variable_get(:@val).to_s.to_f}"
           @@meditate = arg.instance_variable_get(:@val).to_s.to_f
         end
       end
   
       @server.add_method "/AFF/Frustration" do | message |
         message.instance_variable_get(:@args).each do |arg|
-          puts arg.instance_variable_get(:@val).to_s.to_f
+          puts "Frustration - #{arg.instance_variable_get(:@val).to_s.to_f}"
           @@frustrate = arg.instance_variable_get(:@val).to_s.to_f
         end
       end
-      
-      @server.add_method "/AFF/Engagement" do | message |
+
+      @server.add_method "/AFF/Engaged" do | message |
         message.instance_variable_get(:@args).each do |arg|
-          puts arg.instance_variable_get(:@val).to_s.to_f
+          puts "Engage - #{arg.instance_variable_get(:@val).to_s.to_f}"
           @@engage = arg.instance_variable_get(:@val).to_s.to_f
+        end
+      end
+
+      @server.add_method "/AFF/ExcitementLT" do | message |
+        message.instance_variable_get(:@args).each do |arg|
+          puts "Long-term Excitement - #{arg.instance_variable_get(:@val).to_s.to_f}"
+          @@exciteLT = arg.instance_variable_get(:@val).to_s.to_f
         end
       end
 
@@ -60,6 +104,40 @@ class Affect_viz < Processing::App
     # ...for however long
     sleep(3)
   end
-    
-end
+  
+  class Particle
+    def initialize(origin)
+      @origin = origin
+      @velocity = Vector.new(rand * 2 - 1, rand * 2 - 2)
+      @acceleration = Vector.new(0, 0.05)
+      @radius = 15
+      @lifespan = 100
+    end
 
+    def run
+      update
+      grow
+      render
+    end
+    
+    def update
+      @velocity += @acceleration
+      @origin += @velocity
+    end
+
+    def grow
+      @lifespan -= 1
+    end
+
+    def dead?
+      @lifespan <= 0
+    end
+
+    def render
+      stroke(255, @lifespan)
+      fill(100, @lifespan)
+      ellipse(@origin.x, @origin.y, @radius, @radius)
+    end
+  end
+end
+#Affect_viz.new(:width => 1000, :height => 1000, :title => "Affect Viz", :full_screen => true)
