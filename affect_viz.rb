@@ -46,13 +46,17 @@ class Affect_viz < Processing::App
     ellipse_mode(CENTER)
 
     @particles = []
+    @history = []
     @particles.extend Runnable
   end
 
   def draw
     background((@@excite * 255), (@@engage * 255), (@@frustrate * 255))
+    stroke(255, 20)
+    ellipse(@@engage * 1000, @@meditate * 1000, 10, 10)
+    triangle((@@excite * 1000) - 5, (@@frustrate * 1000) - 10, (@@excite * 1000) + 5, (@@frustrate* 1000) - 10, @@excite * 1000, @@frustrate * 1000)
     @particles.run
-    @particles << Particle.new(Vector.new(@@engage * 1000, @@frustrate * 1000))
+    @particles << Particle.new(Vector.new(@@excite * 1000, @@frustrate * 1000), @@engage, @@excite, @@frustrate, @@meditate)
   end
     
   def server
@@ -106,12 +110,13 @@ class Affect_viz < Processing::App
   end
   
   class Particle
-    def initialize(origin)
+    def initialize(origin, engage, excite, frustrate, meditate)
       @origin = origin
       @velocity = Vector.new(rand * 2 - 1, rand * 2 - 2)
-      @acceleration = Vector.new(0, 0.05)
-      @radius = 15
-      @lifespan = 100
+      @acceleration = Vector.new(0, 0.1 * frustrate)
+      @engage = engage * 1000
+      @meditate = meditate * 1000
+      @lifespan = engage * 100
     end
 
     def run
@@ -136,7 +141,7 @@ class Affect_viz < Processing::App
     def render
       stroke(255, @lifespan)
       fill(100, @lifespan)
-      ellipse(@origin.x, @origin.y, @radius, @radius)
+      line(@origin.x, @origin.y, @engage, @meditate)
     end
   end
 end
